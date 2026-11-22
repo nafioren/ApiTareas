@@ -1,0 +1,15 @@
+# Configura WildFly sin levantarlo (embed-server), igual que se haría con
+# jboss-cli.sh en un servidor JBoss real.
+
+embed-server --std-out=echo
+
+# 1. Registrar el driver JDBC de MySQL como módulo
+module add --name=com.mysql --resources=/tmp/mysql-connector-j.jar --dependencies=jakarta.transaction.api
+
+/subsystem=datasources/jdbc-driver=mysql:add(driver-name=mysql, driver-module-name=com.mysql, driver-class-name=com.mysql.cj.jdbc.Driver)
+
+# 2. Crear el datasource. Los ${env.X} se resuelven al arrancar el servidor:
+#    las credenciales vienen de variables de entorno, no quedan en la imagen.
+data-source add --name=TareasDS --jndi-name=java:jboss/datasources/TareasDS --driver-name=mysql --connection-url=jdbc:mysql://${env.DB_HOST:localhost}:${env.DB_PORT:3306}/${env.DB_NAME:tareas} --user-name=${env.DB_USER} --password=${env.DB_PASSWORD} --min-pool-size=2 --max-pool-size=20 --validate-on-match=true --check-valid-connection-sql="SELECT 1"
+
+stop-embedded-server
